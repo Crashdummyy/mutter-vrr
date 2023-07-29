@@ -1,0 +1,33 @@
+From 58e449e8d99d9ec63e13fd14d9c95c27cb8ef660 Mon Sep 17 00:00:00 2001
+From: Sebastian Keller <skeller@gnome.org>
+Date: Wed, 31 May 2023 14:14:04 +0200
+Subject: [PATCH] constraints: Delay initial maximization until after
+ reparenting is done
+
+For SSD windows the decoration window from the frames client might have
+a different maximization state than the client window and would end up
+restoring it once shown. Avoid this issue by waiting until all
+reparenting is done before applying the initial maximization (and
+minimization).
+
+Closes: https://gitlab.gnome.org/GNOME/mutter/-/issues/2579
+---
+ src/core/constraints.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/core/constraints.c b/src/core/constraints.c
+index 9a5398d1ac5..fe4ef407a14 100644
+--- a/src/core/constraints.c
++++ b/src/core/constraints.c
+@@ -600,7 +600,7 @@ place_window_if_needed(MetaWindow     *window,
+       info->fixed_directions = FIXED_DIRECTION_NONE;
+     }
+ 
+-  if (window->placed || did_placement)
++  if (window->reparents_pending == 0 && (window->placed || did_placement))
+     {
+       if (window->maximize_horizontally_after_placement ||
+           window->maximize_vertically_after_placement)
+-- 
+GitLab
+

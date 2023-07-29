@@ -1,0 +1,38 @@
+From 626498348b96e7ebdb2ab90fb7d2b3446578333a Mon Sep 17 00:00:00 2001
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Wed, 12 Jul 2023 18:42:47 +0800
+Subject: [PATCH] stage-impl: Blit damage regions of all ages when using a
+ shadow FB
+
+Original idea by Gert van de Kraats, modified to avoid having an
+unused intermediate swap_region.
+
+Closes: https://gitlab.gnome.org/GNOME/mutter/-/issues/2602
+Part-of: <https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/3117>
+---
+ src/backends/meta-stage-impl.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/src/backends/meta-stage-impl.c b/src/backends/meta-stage-impl.c
+index db0cc8e2fba..26a7531296b 100644
+--- a/src/backends/meta-stage-impl.c
++++ b/src/backends/meta-stage-impl.c
+@@ -600,10 +600,12 @@ meta_stage_impl_redraw_view_primary (MetaStageImpl    *stage_impl,
+    * artefacts.
+    */
+   /* swap_region does not need damage history, set it up before that */
+-  if (use_clipped_redraw)
+-    swap_region = cairo_region_copy (fb_clip_region);
+-  else
++  if (!use_clipped_redraw)
+     swap_region = cairo_region_create ();
++  else if (clutter_stage_view_has_shadowfb (stage_view))
++    swap_region = cairo_region_reference (fb_clip_region);
++  else
++    swap_region = cairo_region_copy (fb_clip_region);
+ 
+   swap_with_damage = FALSE;
+   if (has_buffer_age)
+-- 
+GitLab
+

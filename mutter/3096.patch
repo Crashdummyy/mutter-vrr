@@ -1,0 +1,39 @@
+From e95499038d36db47c0eb920ae9aec632e87931c2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Michel=20D=C3=A4nzer?= <mdaenzer@redhat.com>
+Date: Tue, 27 Jun 2023 12:09:13 +0200
+Subject: [PATCH] frames: Fix XGetWMNormalHints return value check
+
+It returns non-0 if there are any hints in the WM_NORMAL_HINTS
+property, 0 if there are none.
+
+Fixes the mouse cursor changing to the resize shape over the decorations
+of non-resizable windows.
+
+Fixes: c7b3d8c607ae ("frames: Push error traps around various X11 calls")
+Part-of: <https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/3096>
+---
+ src/frames/meta-frame.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/frames/meta-frame.c b/src/frames/meta-frame.c
+index 345751ad148..edb7378e047 100644
+--- a/src/frames/meta-frame.c
++++ b/src/frames/meta-frame.c
+@@ -446,10 +446,10 @@ frame_sync_wm_normal_hints (GtkWindow *frame,
+ 
+   gdk_x11_display_error_trap_push (display);
+ 
+-  if (XGetWMNormalHints (gdk_x11_display_get_xdisplay (display),
+-                         client_window,
+-                         &size_hints,
+-                         &nitems) != Success)
++  if (!XGetWMNormalHints (gdk_x11_display_get_xdisplay (display),
++                          client_window,
++                          &size_hints,
++                          &nitems))
+     {
+       gdk_x11_display_error_trap_pop_ignored (display);
+       return;
+-- 
+GitLab
+

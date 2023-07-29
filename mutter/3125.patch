@@ -1,0 +1,61 @@
+From 7b04e8be157b64dc52e3069752bf753a243ad51f Mon Sep 17 00:00:00 2001
+From: Gergo Koteles <soyer@irl.hu>
+Date: Wed, 19 Jul 2023 01:19:16 +0200
+Subject: [PATCH] wayland: Find touch grab sequence in subsurfaces also
+
+With libdecor, window moving/resizing only works with
+the pointer, not with touch.
+The meta_wayland_pointer_can_grab_surface checks for subsurfaces,
+but the meta_wayland_touch_find_grab_sequence does not.
+
+Add a similar subsurface check to
+meta_wayland_touch_find_grab_sequence.
+
+Closes: GNOME/mutter#2872
+Part-of: <https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/3125>
+---
+ src/wayland/meta-wayland-touch.c | 21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/src/wayland/meta-wayland-touch.c b/src/wayland/meta-wayland-touch.c
+index 6d45b4b7b30..37e1a611c66 100644
+--- a/src/wayland/meta-wayland-touch.c
++++ b/src/wayland/meta-wayland-touch.c
+@@ -553,6 +553,25 @@ meta_wayland_touch_can_popup (MetaWaylandTouch *touch,
+   return FALSE;
+ }
+ 
++static gboolean
++touch_can_grab_surface (MetaWaylandTouchInfo *touch_info,
++                        MetaWaylandSurface   *surface)
++{
++  MetaWaylandSurface *subsurface;
++
++  if (touch_info->touch_surface->surface == surface)
++    return TRUE;
++
++  META_WAYLAND_SURFACE_FOREACH_SUBSURFACE (&surface->output_state,
++                                           subsurface)
++    {
++      if (touch_can_grab_surface (touch_info, subsurface))
++        return TRUE;
++    }
++
++  return FALSE;
++}
++
+ ClutterEventSequence *
+ meta_wayland_touch_find_grab_sequence (MetaWaylandTouch   *touch,
+                                        MetaWaylandSurface *surface,
+@@ -571,7 +590,7 @@ meta_wayland_touch_find_grab_sequence (MetaWaylandTouch   *touch,
+                                  (gpointer*) &touch_info))
+     {
+       if (touch_info->slot_serial == serial &&
+-	  touch_info->touch_surface->surface == surface)
++          touch_can_grab_surface (touch_info, surface))
+         return sequence;
+     }
+ 
+-- 
+GitLab
+

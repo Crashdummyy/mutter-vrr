@@ -1,0 +1,37 @@
+From d67d22f948a1b43e626b85db007e1410bb906d28 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jonas=20=C3=85dahl?= <jadahl@gmail.com>
+Date: Thu, 22 Jun 2023 10:35:27 +0200
+Subject: [PATCH] backend: Init settings before initable_init
+
+This means the settings instance is there before the backend backend's
+initable_init() function gets called.
+
+Part-of: <https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/3085>
+---
+ src/backends/meta-backend.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/backends/meta-backend.c b/src/backends/meta-backend.c
+index 1b864f3606..0a2ff8bb99 100644
+--- a/src/backends/meta-backend.c
++++ b/src/backends/meta-backend.c
+@@ -791,6 +791,8 @@ meta_backend_constructed (GObject *object)
+ 
+   g_assert (priv->context);
+ 
++  priv->settings = meta_settings_new (backend);
++
+ #ifdef HAVE_LIBWACOM
+   priv->wacom_db = libwacom_database_new ();
+   if (!priv->wacom_db)
+@@ -1201,7 +1203,6 @@ meta_backend_initable_init (GInitable     *initable,
+   MetaBackend *backend = META_BACKEND (initable);
+   MetaBackendPrivate *priv = meta_backend_get_instance_private (backend);
+ 
+-  priv->settings = meta_settings_new (backend);
+   priv->orientation_manager = g_object_new (META_TYPE_ORIENTATION_MANAGER, NULL);
+ 
+   priv->monitor_manager = meta_backend_create_monitor_manager (backend, error);
+-- 
+GitLab
+

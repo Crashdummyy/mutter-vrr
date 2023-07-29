@@ -1,0 +1,99 @@
+From 869d0f2aaef80900484c6763cb7bf44d44555945 Mon Sep 17 00:00:00 2001
+From: Brendan William <brendan.william@outlook.com>
+Date: Fri, 7 Jul 2023 23:00:28 -0700
+Subject: [PATCH 1/2] Revert "core: Fix map transitions for X11 windows on
+ Wayland"
+
+This reverts commit 18be74edeb58d755f7e9647f70e9faf4e4259f21.
+
+Closes https://gitlab.gnome.org/GNOME/mutter/-/issues/2820
+Closes https://gitlab.gnome.org/GNOME/mutter/-/issues/2867
+---
+ src/core/window.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/core/window.c b/src/core/window.c
+index 038aaa9076..7d47c532f9 100644
+--- a/src/core/window.c
++++ b/src/core/window.c
+@@ -1731,10 +1731,10 @@ static gboolean
+ window_has_buffer (MetaWindow *window)
+ {
+ #ifdef HAVE_WAYLAND
+-  if (meta_is_wayland_compositor ())
++  if (window->client_type == META_WINDOW_CLIENT_TYPE_WAYLAND)
+     {
+       MetaWaylandSurface *surface = meta_window_get_wayland_surface (window);
+-      if (!surface || !meta_wayland_surface_get_buffer (surface))
++      if (!meta_wayland_surface_get_buffer (surface))
+         return FALSE;
+     }
+ #endif
+-- 
+GitLab
+
+
+From 7e3635299f59dc24adc17cbe16dcb8e1f652b0d1 Mon Sep 17 00:00:00 2001
+From: Brendan William <brendan.william@outlook.com>
+Date: Fri, 7 Jul 2023 23:01:44 -0700
+Subject: [PATCH 2/2] core: Only force placement of windows that should be
+ mapped
+
+With 18be74edeb58d755f7e9647f70e9faf4e4259f21 reverted, client_window_should_be_mapped and
+window_has_buffer handle Wayland window types in the same manner, while
+the latter does not handle X11 window types at all. Let's drop
+window_has_buffer, instead using client_window_should_be_mapped where
+possible to ensure X11 window types only have placement forced when
+they should be mapped.
+---
+ src/core/window.c | 23 ++---------------------
+ 1 file changed, 2 insertions(+), 21 deletions(-)
+
+diff --git a/src/core/window.c b/src/core/window.c
+index 7d47c532f9..6af4d1aa34 100644
+--- a/src/core/window.c
++++ b/src/core/window.c
+@@ -1727,30 +1727,11 @@ meta_window_showing_on_its_workspace (MetaWindow *window)
+   return showing;
+ }
+ 
+-static gboolean
+-window_has_buffer (MetaWindow *window)
+-{
+-#ifdef HAVE_WAYLAND
+-  if (window->client_type == META_WINDOW_CLIENT_TYPE_WAYLAND)
+-    {
+-      MetaWaylandSurface *surface = meta_window_get_wayland_surface (window);
+-      if (!meta_wayland_surface_get_buffer (surface))
+-        return FALSE;
+-    }
+-#endif
+-
+-  return TRUE;
+-}
+-
+ gboolean
+ meta_window_should_be_showing_on_workspace (MetaWindow    *window,
+                                             MetaWorkspace *workspace)
+ {
+-  if (!window_has_buffer (window))
+-    return FALSE;
+-
+-  if (window->client_type == META_WINDOW_CLIENT_TYPE_X11 &&
+-      window->decorated && !window->frame)
++  if (!client_window_should_be_mapped (window))
+     return FALSE;
+ 
+   /* Windows should be showing if they're located on the
+@@ -1790,7 +1771,7 @@ implement_showing (MetaWindow *window,
+        * Force placing windows only when they should be already mapped,
+        * see #751887
+        */
+-      if (!window->placed && window_has_buffer (window))
++      if (!window->placed && client_window_should_be_mapped (window))
+         meta_window_force_placement (window, FALSE);
+ 
+       meta_window_hide (window);
+-- 
+GitLab
+
