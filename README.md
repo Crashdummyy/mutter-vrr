@@ -14,7 +14,7 @@
 
 ## Gnome-Control-Center
 ![Build Status](https://copr.fedorainfracloud.org/coprs/crashdummy/mutter-vrr/package/gnome-control-center/status_image/last_build.png)
-* Enable experimental VRR feature by default
+* [#734 - Wayland VRR](https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/734)
 
 ## Xorg-x11-server-Xwayland
 ![Build Status](https://copr.fedorainfracloud.org/coprs/crashdummy/mutter-vrr/package/xorg-x11-server-Xwayland/status_image/last_build.png)
